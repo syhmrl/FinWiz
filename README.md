@@ -69,4 +69,4 @@ This project is licensed under the MIT License - see the LICENSE file for detail
 
 Syahmi Alwi - [@SyahmiAlwi](https://github.com/SyahmiAlwi)
 
-Project Link: [https://github.com/SyahmiAlwi/FinWiz](https://github.com/SyahmiAlwi/FinWiz) 
+Project Link: [https://github.com/SyahmiAlwi/FinWiz](https://github.com/SyahmiAlwi/FinWiz)
