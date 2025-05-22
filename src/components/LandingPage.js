@@ -1,5 +1,5 @@
 import React from 'react';
-import { useNavigate } from 'react-router-dom';
+import { useNavigate, Link } from 'react-router-dom';
 
 const LandingPage = () => {
   const navigate = useNavigate();
@@ -31,10 +31,10 @@ const LandingPage = () => {
       
       <div className="flex gap-6">
         <button 
-          onClick={handleStart}
+          onClick={() => navigate('/signup')}
           className="px-8 py-3 bg-blue-600 hover:bg-blue-700 text-white font-semibold rounded-lg shadow-lg transition-all transform hover:scale-105"
         >
-          Start Now
+          Sign Up Now
         </button>
         <button 
           onClick={handleLogin}

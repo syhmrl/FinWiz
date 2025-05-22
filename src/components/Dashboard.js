@@ -39,8 +39,8 @@ const Dashboard = () => {
     getUser();
   }, []);
 
-  // Update fetchData to include new transaction types
-  const fetchData = async () => {
+  // Memoize fetchData with useCallback
+  const fetchData = useCallback(async () => {
     if (!userId) return;
     
     try {
@@ -118,7 +118,7 @@ const Dashboard = () => {
     } finally {
       setLoading(false);
     }
-  };
+  }, [userId]); // Only depend on userId
 
   // Fetch data when userId changes
   useEffect(() => {
