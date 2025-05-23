@@ -37,7 +37,7 @@ const LandingPage = () => {
           Sign Up Now
         </button>
         <button 
-          onClick={handleLogin}
+          onClick={() => navigate('/login')}
           className="px-8 py-3 bg-white border border-blue-600 text-blue-600 hover:bg-blue-50 font-semibold rounded-lg shadow-lg transition-all transform hover:scale-105"
         >
           Login

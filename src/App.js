@@ -1,14 +1,16 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, createContext, useContext } from 'react';
 import './App.css';
 import { Routes, Route, Navigate } from 'react-router-dom';
 import Dashboard from './components/Dashboard';
 import Transactions from './components/Transactions';
 import LandingPage from './components/LandingPage';
 import Layout from './components/Layout';
-import Login from './components/Login';
-import SignUp from './components/SignUp';
+import Auth from './components/Auth';
 import ExtendedProfile from './components/ExtendedProfile';
 import { supabase } from './supabaseClient';
+
+export const ProfileContext = createContext();
+export const useProfile = () => useContext(ProfileContext);
 
 function App() {
   const [session, setSession] = useState(null);
@@ -43,16 +45,50 @@ function App() {
 
   const checkProfileCompletion = async (userId) => {
     try {
+      console.log('Checking profile for user:', userId);
+      
+      // First try to get the profile
       const { data, error } = await supabase
-        .from('user_profiles')
-        .select('profile_completed')
-        .eq('user_id', userId)
+        .from('profiles')
+        .select('*')
+        .eq('id', userId)
         .single();
 
-      if (error) throw error;
-      setProfileCompleted(data?.profile_completed || false);
+      console.log('Profile check response:', { data, error });
+
+      if (error) {
+        if (error.code === 'PGRST116') {
+          console.log('No profile found, creating new profile');
+          // No profile found, create one with minimal required fields
+          const newProfile = {
+            id: userId,
+            is_student: false,
+            profile_completed: false,
+            created_at: new Date().toISOString(),
+            updated_at: new Date().toISOString()
+          };
+
+          console.log('Creating new profile with data:', newProfile);
+
+          const { error: insertError } = await supabase
+            .from('profiles')
+            .insert([newProfile]);
+          
+          if (insertError) {
+            console.error('Error creating initial profile:', insertError);
+            throw insertError;
+          }
+          setProfileCompleted(false);
+        } else {
+          console.error('Error checking profile:', error);
+          throw error;
+        }
+      } else {
+        console.log('Profile found:', data);
+        setProfileCompleted(data?.profile_completed || false);
+      }
     } catch (error) {
-      console.error('Error checking profile completion:', error);
+      console.error('Error in checkProfileCompletion:', error);
       setProfileCompleted(false);
     } finally {
       setLoading(false);
@@ -68,46 +104,48 @@ function App() {
   }
 
   return (
-    <Routes>
-      <Route path="/" element={<LandingPage />} />
-      <Route path="/signup" element={<SignUp />} />
-      <Route path="/login" element={<Login />} />
-      
-      {/* Protected Routes */}
-      <Route
-        path="/"
-        element={
-          session ? (
-            profileCompleted ? (
-              <Layout />
+    <ProfileContext.Provider value={{ profileCompleted, setProfileCompleted }}>
+      <Routes>
+        <Route path="/" element={<LandingPage />} />
+        <Route path="/signup" element={<Auth />} />
+        <Route path="/login" element={<Auth />} />
+        
+        {/* Protected Routes */}
+        <Route
+          path="/"
+          element={
+            session ? (
+              profileCompleted ? (
+                <Layout />
+              ) : (
+                <Navigate to="/complete-profile" replace />
+              )
             ) : (
-              <Navigate to="/complete-profile" replace />
+              <Navigate to="/login" replace />
             )
-          ) : (
-            <Navigate to="/login" replace />
-          )
-        }
-      >
-        <Route path="dashboard" element={<Dashboard />} />
-        <Route path="transactions" element={<Transactions />} />
-      </Route>
+          }
+        >
+          <Route path="dashboard" element={<Dashboard />} />
+          <Route path="transactions" element={<Transactions />} />
+        </Route>
 
-      {/* Extended Profile Route */}
-      <Route
-        path="/complete-profile"
-        element={
-          session ? (
-            profileCompleted ? (
-              <Navigate to="/dashboard" replace />
+        {/* Extended Profile Route */}
+        <Route
+          path="/complete-profile"
+          element={
+            session ? (
+              profileCompleted ? (
+                <Navigate to="/dashboard" replace />
+              ) : (
+                <ExtendedProfile setProfileCompleted={setProfileCompleted} />
+              )
             ) : (
-              <ExtendedProfile />
+              <Navigate to="/login" replace />
             )
-          ) : (
-            <Navigate to="/login" replace />
-          )
-        }
-      />
-    </Routes>
+          }
+        />
+      </Routes>
+    </ProfileContext.Provider>
   );
 }
 

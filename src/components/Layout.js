@@ -1,8 +1,8 @@
 import React from 'react';
-import { Link, useLocation, useNavigate } from 'react-router-dom';
+import { Link, useLocation, useNavigate, Outlet } from 'react-router-dom';
 import { supabase } from '../supabaseClient';
 
-const Layout = ({ children }) => {
+const Layout = () => {
   const location = useLocation();
   const currentPath = location.pathname;
   const navigate = useNavigate();
@@ -100,8 +100,8 @@ const Layout = ({ children }) => {
       </div>
 
       {/* Main Content Area */}
-      <div className="flex-1 overflow-auto">
-        {children}
+      <div className="flex-1 flex flex-col">
+        <Outlet />
       </div>
     </div>
   );

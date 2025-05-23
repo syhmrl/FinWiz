@@ -2,19 +2,18 @@ import React, { useState } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { supabase } from '../supabaseClient';
 
-const ExtendedProfile = () => {
+const ExtendedProfile = ({ setProfileCompleted }) => {
   const navigate = useNavigate();
   const [loading, setLoading] = useState(false);
   const [formData, setFormData] = useState({
-    isStudent: false,
-    institutionName: '',
-    monthlyIncomeSource: '',
-    monthlyExpensesRange: '',
-    loanAmount: '',
-    expectedGraduationMonth: '',
-    loanLender: '',
-    providerType: '',
-    providerName: '',
+    is_student: false,
+    institution_name: '',
+    monthly_income_source: '',
+    monthly_expenses_range: '',
+    loan_amount: '',
+    expected_graduation_month: '',
+    loan_lender: '',
+    currency_preference: 'MYR'
   });
 
   const loanLenders = [
@@ -102,21 +101,85 @@ const ExtendedProfile = () => {
       
       if (!user) throw new Error('No user found');
 
-      const { error } = await supabase
-        .from('user_profiles')
-        .upsert({
-          user_id: user.id,
-          ...formData,
-          profile_completed: true,
-          updated_at: new Date().toISOString()
-        });
+      console.log('Current user:', user);
 
-      if (error) throw error;
+      // Convert loan amount to decimal
+      const loanAmount = formData.loan_amount ? parseFloat(formData.loan_amount) : null;
+      
+      // Convert graduation month to string (YYYY-MM)
+      const graduationMonth = formData.expected_graduation_month ? 
+        formData.expected_graduation_month : null;
 
+      // Prepare the profile data with only the fields that exist in the schema
+      const profileData = {
+        is_student: formData.is_student,
+        institution_name: formData.is_student ? formData.institution_name : null,
+        monthly_income_source: formData.monthly_income_source || null,
+        monthly_expenses_range: formData.monthly_expenses_range || null,
+        loan_amount: loanAmount,
+        expected_graduation_month: formData.is_student ? graduationMonth : null,
+        loan_lender: formData.loan_amount > 0 ? formData.loan_lender : null,
+        currency_preference: formData.currency_preference || null,
+        profile_completed: true,
+        updated_at: new Date().toISOString()
+      };
+
+      console.log('Prepared profile data:', profileData);
+
+      // First, try to get the existing profile
+      const { data: existingProfile, error: fetchError } = await supabase
+        .from('profiles')
+        .select('*')
+        .eq('id', user.id)
+        .single();
+
+      console.log('Existing profile check:', { existingProfile, fetchError });
+
+      if (fetchError && fetchError.code !== 'PGRST116') {
+        console.error('Error fetching existing profile:', fetchError);
+        throw fetchError;
+      }
+
+      let result;
+      // If no profile exists, create one
+      if (!existingProfile) {
+        console.log('Creating new profile');
+        result = await supabase
+          .from('profiles')
+          .insert([
+            {
+              id: user.id,
+              full_name: user.user_metadata?.full_name || '',
+              email: user.email,
+              created_at: new Date().toISOString(),
+              ...profileData
+            }
+          ]);
+
+        if (result.error) {
+          console.error('Error creating profile:', result.error);
+          throw result.error;
+        }
+      } else {
+        // Update existing profile
+        console.log('Updating existing profile');
+        result = await supabase
+          .from('profiles')
+          .update(profileData)
+          .eq('id', user.id);
+
+        if (result.error) {
+          console.error('Error updating profile:', result.error);
+          throw result.error;
+        }
+      }
+
+      console.log('Profile operation successful:', result);
+      if (setProfileCompleted) setProfileCompleted(true);
       navigate('/dashboard');
     } catch (error) {
       console.error('Error saving profile:', error);
-      alert('Error saving profile. Please try again.');
+      alert(`Error saving profile: ${error.message || 'Please try again.'}`);
     } finally {
       setLoading(false);
     }
@@ -137,30 +200,30 @@ const ExtendedProfile = () => {
           <div className="flex items-center">
             <input
               type="checkbox"
-              id="isStudent"
-              name="isStudent"
-              checked={formData.isStudent}
+              id="is_student"
+              name="is_student"
+              checked={formData.is_student}
               onChange={handleChange}
               className="h-4 w-4 text-blue-600 focus:ring-blue-500 border-gray-300 rounded"
             />
-            <label htmlFor="isStudent" className="ml-2 block text-sm text-gray-900">
+            <label htmlFor="is_student" className="ml-2 block text-sm text-gray-900">
               I am a student
             </label>
           </div>
 
           {/* Institution Name */}
-          {formData.isStudent && (
+          {formData.is_student && (
             <div>
-              <label htmlFor="institutionName" className="block text-sm font-medium text-gray-700">
+              <label htmlFor="institution_name" className="block text-sm font-medium text-gray-700">
                 Institution Name
               </label>
               <select
-                name="institutionName"
-                id="institutionName"
-                value={formData.institutionName}
+                name="institution_name"
+                id="institution_name"
+                value={formData.institution_name}
                 onChange={handleChange}
                 className="mt-1 block w-full rounded-md border-gray-300 shadow-sm focus:border-blue-500 focus:ring-blue-500"
-                required
+                required={formData.is_student}
               >
                 <option value="">Select your institution</option>
                 {institutionOptions.map((name) => (
@@ -172,13 +235,13 @@ const ExtendedProfile = () => {
 
           {/* Monthly Income Source */}
           <div>
-            <label htmlFor="monthlyIncomeSource" className="block text-sm font-medium text-gray-700">
+            <label htmlFor="monthly_income_source" className="block text-sm font-medium text-gray-700">
               Monthly Income Source
             </label>
             <select
-              id="monthlyIncomeSource"
-              name="monthlyIncomeSource"
-              value={formData.monthlyIncomeSource}
+              id="monthly_income_source"
+              name="monthly_income_source"
+              value={formData.monthly_income_source}
               onChange={handleChange}
               className="mt-1 block w-full rounded-md border-gray-300 shadow-sm focus:border-blue-500 focus:ring-blue-500"
             >
@@ -193,13 +256,13 @@ const ExtendedProfile = () => {
 
           {/* Monthly Expenses Range */}
           <div>
-            <label htmlFor="monthlyExpensesRange" className="block text-sm font-medium text-gray-700">
+            <label htmlFor="monthly_expenses_range" className="block text-sm font-medium text-gray-700">
               Monthly Expenses Range
             </label>
             <select
-              id="monthlyExpensesRange"
-              name="monthlyExpensesRange"
-              value={formData.monthlyExpensesRange}
+              id="monthly_expenses_range"
+              name="monthly_expenses_range"
+              value={formData.monthly_expenses_range}
               onChange={handleChange}
               className="mt-1 block w-full rounded-md border-gray-300 shadow-sm focus:border-blue-500 focus:ring-blue-500"
             >
@@ -214,81 +277,70 @@ const ExtendedProfile = () => {
 
           {/* Loan Amount */}
           <div>
-            <label htmlFor="loanAmount" className="block text-sm font-medium text-gray-700">
+            <label htmlFor="loan_amount" className="block text-sm font-medium text-gray-700">
               Loan Amount (if any)
             </label>
             <input
               type="number"
-              name="loanAmount"
-              id="loanAmount"
-              value={formData.loanAmount}
+              name="loan_amount"
+              id="loan_amount"
+              value={formData.loan_amount}
               onChange={handleChange}
               placeholder="0.00"
               className="mt-1 block w-full rounded-md border-gray-300 shadow-sm focus:border-blue-500 focus:ring-blue-500"
             />
           </div>
 
-          {/* Expected Graduation Year (MM/YYYY) */}
-          {formData.isStudent && (
+          {/* Expected Graduation Month */}
+          {formData.is_student && (
             <div>
-              <label htmlFor="expectedGraduationMonth" className="block text-sm font-medium text-gray-700">
-                Expected Graduation (MM/YYYY)
+              <label htmlFor="expected_graduation_month" className="block text-sm font-medium text-gray-700">
+                Expected Graduation Month
               </label>
               <input
                 type="month"
-                name="expectedGraduationMonth"
-                id="expectedGraduationMonth"
-                value={formData.expectedGraduationMonth}
+                name="expected_graduation_month"
+                id="expected_graduation_month"
+                value={formData.expected_graduation_month}
                 onChange={handleChange}
                 min={`${new Date().getFullYear()}-${String(new Date().getMonth() + 1).padStart(2, '0')}`}
                 max={`${new Date().getFullYear() + 10}-12`}
                 className="mt-1 block w-full rounded-md border-gray-300 shadow-sm focus:border-blue-500 focus:ring-blue-500"
-                required
+                required={formData.is_student}
               />
             </div>
           )}
 
-          {/* Loan/Scholarship Provider */}
+          {/* Currency Preference */}
           <div>
-            <label htmlFor="providerType" className="block text-sm font-medium text-gray-700">
-              Loan/Scholarship Provider
+            <label htmlFor="currency_preference" className="block text-sm font-medium text-gray-700">
+              Currency Preference
             </label>
             <select
-              id="providerType"
-              name="providerType"
-              value={formData.providerType}
+              id="currency_preference"
+              name="currency_preference"
+              value={formData.currency_preference}
               onChange={handleChange}
               className="mt-1 block w-full rounded-md border-gray-300 shadow-sm focus:border-blue-500 focus:ring-blue-500"
               required
             >
-              <option value="">Select provider</option>
-              {providerOptions.map(option => (
-                <option key={option.id} value={option.id}>{option.name}</option>
+              <option value="">Select currency</option>
+              {currencies.map(currency => (
+                <option key={currency.id} value={currency.id}>{currency.name}</option>
               ))}
             </select>
-            {(formData.providerType === 'ScholarshipCompany' || formData.providerType === 'Other') && (
-              <input
-                type="text"
-                name="providerName"
-                value={formData.providerName}
-                onChange={handleChange}
-                placeholder="Enter company/organisation name"
-                className="mt-2 block w-full rounded-md border-gray-300 shadow-sm focus:border-blue-500 focus:ring-blue-500"
-                required
-              />
-            )}
           </div>
 
           {/* Loan Lender */}
-          {formData.loanAmount > 0 && (
+          {formData.loan_amount > 0 && (
             <div>
-              <label htmlFor="loanLender" className="block text-sm font-medium text-gray-700">
+              <label htmlFor="loan_lender" className="block text-sm font-medium text-gray-700">
                 Loan Lender
               </label>
               <select
-                id="loanLender"
-                name="loanLender"
-                value={formData.loanLender}
+                id="loan_lender"
+                name="loan_lender"
+                value={formData.loan_lender}
                 onChange={handleChange}
                 className="mt-1 block w-full rounded-md border-gray-300 shadow-sm focus:border-blue-500 focus:ring-blue-500"
               >

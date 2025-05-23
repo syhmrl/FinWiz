@@ -7,6 +7,7 @@ import { Link } from 'react-router-dom';
 import { supabase, getCurrentUser } from '../supabaseClient';
 
 const Dashboard = () => {
+  console.log('Rendering Dashboard component');
   const [income, setIncome] = useState(0);
   const [expenses, setExpenses] = useState(0);
   const [savings, setSavings] = useState(0);
@@ -59,8 +60,20 @@ const Dashboard = () => {
 
       if (error) throw error;
 
-      // Process data for charts
+      // --- Default months for the last 6 months ---
+      const now = new Date();
+      const months = [];
+      for (let i = 5; i >= 0; i--) {
+        const d = new Date(now.getFullYear(), now.getMonth() - i, 1);
+        months.push(`${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, '0')}`);
+      }
+
+      // --- Build monthlyData with zeros ---
       const monthlyData = {};
+      months.forEach(month => {
+        monthlyData[month] = { income: 0, expense: 0, savings: 0, sadaqah: 0 };
+      });
+
       const categoryData = {
         income: {},
         expense: {},
@@ -72,20 +85,11 @@ const Dashboard = () => {
         const date = new Date(entry.date);
         const monthYear = `${date.getFullYear()}-${(date.getMonth() + 1).toString().padStart(2, '0')}`;
         
-        // Initialize month data if not exists
         if (!monthlyData[monthYear]) {
-          monthlyData[monthYear] = {
-            income: 0,
-            expense: 0,
-            savings: 0,
-            sadaqah: 0
-          };
+          monthlyData[monthYear] = { income: 0, expense: 0, savings: 0, sadaqah: 0 };
         }
-        
-        // Add to monthly totals
         monthlyData[monthYear][entry.type] += entry.amount;
         
-        // Add to category totals
         if (!categoryData[entry.type][entry.category]) {
           categoryData[entry.type][entry.category] = 0;
         }
@@ -93,12 +97,9 @@ const Dashboard = () => {
       });
 
       // Convert to arrays for charts
-      const chartData = Object.entries(monthlyData).map(([month, data]) => ({
+      const chartData = months.map(month => ({
         month,
-        income: data.income,
-        expense: data.expense,
-        savings: data.savings,
-        sadaqah: data.sadaqah
+        ...monthlyData[month]
       }));
 
       const categoryChartData = Object.entries(categoryData).map(([type, categories]) => ({
@@ -126,6 +127,7 @@ const Dashboard = () => {
   }, [fetchData]);
 
   if (loading) {
+    console.log('Dashboard: loading state');
     return (
       <div className="flex-1 p-8 flex items-center justify-center">
         <p>Loading dashboard data...</p>
@@ -134,6 +136,7 @@ const Dashboard = () => {
   }
 
   if (error) {
+    console.log('Dashboard: error state', error);
     return (
       <div className="flex-1 p-8">
         <div className="bg-red-100 border-l-4 border-red-500 text-red-700 p-4 mb-6" role="alert">
@@ -143,6 +146,7 @@ const Dashboard = () => {
     );
   }
   
+  console.log('Dashboard: rendering main content', { chartData, categoryData });
   return (
     <div className="flex-1 p-8 overflow-y-auto">
       <div className="flex justify-between items-center mb-8">

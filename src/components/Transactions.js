@@ -2,6 +2,7 @@ import React, { useState, useEffect, useCallback } from 'react';
 import { supabase, getCurrentUser } from '../supabaseClient';
 
 const Transactions = () => {
+  console.log('Rendering Transactions component');
   // States for the form
   const [date, setDate] = useState(new Date().toISOString().substr(0, 10));
   const [category, setCategory] = useState('');
@@ -611,15 +612,21 @@ const Transactions = () => {
           </div>
         </div>
         
-        {/* Entries Table */}
-        <div className="bg-white rounded-lg shadow overflow-hidden">
-          <h2 className="text-lg font-semibold p-4 border-b text-gray-700">
-            {months[filterMonth - 1]} {filterYear} Transactions
-          </h2>
-          
-          {loading && !entries.length ? (
-            <div className="p-8 text-center text-gray-500">Loading transactions...</div>
-          ) : entries.length > 0 ? (
+        {/* Entries Table or Empty State */}
+        {loading ? (
+          <div className="text-center py-8 text-gray-500">Loading...</div>
+        ) : error ? (
+          <div className="text-center py-8 text-red-500">{error}</div>
+        ) : entries.length === 0 ? (
+          <div className="text-center py-8 text-gray-400">
+            No transactions yet. Add your first transaction above!
+          </div>
+        ) : (
+          <div className="bg-white rounded-lg shadow overflow-hidden">
+            <h2 className="text-lg font-semibold p-4 border-b text-gray-700">
+              {months[filterMonth - 1]} {filterYear} Transactions
+            </h2>
+            
             <div className="overflow-x-auto">
               <table className="w-full">
                 <thead>
@@ -686,12 +693,8 @@ const Transactions = () => {
                 </tbody>
               </table>
             </div>
-          ) : (
-            <div className="p-8 text-center text-gray-500">
-              No transactions found for {months[filterMonth - 1]} {filterYear}.
-            </div>
-          )}
-        </div>
+          </div>
+        )}
       </div>
     </div>
   );
