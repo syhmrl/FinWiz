@@ -4,13 +4,18 @@ import Lottie from 'lottie-react';
 
 const LandingPage = () => {
   const navigate = useNavigate();
-  const [animationData, setAnimationData] = useState(null);
+  const [bgAnimationData, setBgAnimationData] = useState(null);
+  const [logoAnimationData, setLogoAnimationData] = useState(null);
 
   useEffect(() => {
+    fetch('/background_animation.json')
+      .then(response => response.json())
+      .then(data => setBgAnimationData(data))
+      .catch(error => console.error('Error loading background animation:', error));
     fetch('/finwiz_animation.json')
       .then(response => response.json())
-      .then(data => setAnimationData(data))
-      .catch(error => console.error('Error loading animation:', error));
+      .then(data => setLogoAnimationData(data))
+      .catch(error => console.error('Error loading logo animation:', error));
   }, []);
 
   const handleStart = () => {
@@ -18,19 +23,38 @@ const LandingPage = () => {
   };
 
   const handleLogin = () => {
-    // In a real app, you would navigate to the login page
-    // For now, we'll just go to the dashboard
     navigate('/dashboard');
   };
 
   return (
-    <div className="min-h-screen flex flex-col items-center justify-center bg-gradient-to-br from-[#0BCDAA] to-[#05A6D4] px-4">
-      <div className="bg-white bg-opacity-90 rounded-3xl shadow-2xl p-10 max-w-xl w-full flex flex-col items-center">
+    <div className="w-screen h-screen flex flex-col items-center justify-center relative overflow-hidden p-0 m-0">
+      {/* Full-viewport Lottie background */}
+      {bgAnimationData && (
+        <Lottie
+          animationData={bgAnimationData}
+          loop={true}
+          autoplay={true}
+          style={{
+            position: 'fixed',
+            top: 0,
+            left: 0,
+            width: '100vw',
+            height: '100vh',
+            zIndex: 0,
+            pointerEvents: 'none',
+          }}
+          rendererSettings={{
+            preserveAspectRatio: 'none',
+          }}
+        />
+      )}
+      {/* Main content remains unchanged, above the animation */}
+      <div className="relative z-10 bg-white bg-opacity-90 rounded-3xl shadow-2xl p-10 max-w-xl w-full flex flex-col items-center">
         <div className="mb-4 flex flex-col items-center">
           <div className="w-48 h-48">
-            {animationData && (
+            {logoAnimationData && (
               <Lottie
-                animationData={animationData}
+                animationData={logoAnimationData}
                 loop={true}
                 autoplay={true}
                 style={{ width: '100%', height: '100%' }}

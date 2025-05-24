@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import { supabase, getCurrentUser } from '../supabaseClient';
 // import { Pie } from 'react-chartjs-2'; // Uncomment if using Chart.js
 
@@ -110,6 +110,8 @@ const StudentLoanCalculator = () => {
   const [submitted, setSubmitted] = useState(false);
   const [saving, setSaving] = useState(false);
   const [saveMessage, setSaveMessage] = useState('');
+  const [savedScenarios, setSavedScenarios] = useState([]);
+  const [loadingScenarios, setLoadingScenarios] = useState(false);
 
   const handleChange = (e) => {
     const { name, value, type, checked } = e.target;
@@ -191,6 +193,57 @@ const StudentLoanCalculator = () => {
       setSaveMessage('Failed to save scenario.');
     } finally {
       setSaving(false);
+    }
+  };
+
+  // Fetch saved scenarios for the current user
+  const fetchSavedScenarios = async () => {
+    setLoadingScenarios(true);
+    try {
+      const user = await getCurrentUser();
+      if (!user) {
+        setSavedScenarios([]);
+        setLoadingScenarios(false);
+        return;
+      }
+      const { data, error } = await supabase
+        .from('loan_scenarios')
+        .select('*')
+        .eq('user_id', user.id)
+        .order('created_at', { ascending: false });
+      if (error) throw error;
+      setSavedScenarios(data || []);
+    } catch (err) {
+      setSavedScenarios([]);
+    } finally {
+      setLoadingScenarios(false);
+    }
+  };
+
+  useEffect(() => {
+    fetchSavedScenarios();
+    // eslint-disable-next-line
+  }, []);
+
+  // Refetch after saving
+  useEffect(() => {
+    if (saveMessage === 'Scenario saved!') {
+      fetchSavedScenarios();
+    }
+    // eslint-disable-next-line
+  }, [saveMessage]);
+
+  // Delete scenario function
+  const deleteScenario = async (id) => {
+    if (!window.confirm('Are you sure you want to delete this scenario?')) return;
+    try {
+      await supabase
+        .from('loan_scenarios')
+        .delete()
+        .eq('id', id);
+      fetchSavedScenarios();
+    } catch (err) {
+      alert('Failed to delete scenario.');
     }
   };
 
@@ -388,6 +441,40 @@ const StudentLoanCalculator = () => {
             {saveMessage && <div className="mt-2 text-center text-sm text-blue-700">{saveMessage}</div>}
           </div>
         )}
+        {/* Saved Scenarios Card List */}
+        <div className="mt-12">
+          <h2 className="text-2xl font-bold text-[#05A6D4] mb-4">Your Saved Scenarios</h2>
+          {loadingScenarios ? (
+            <div className="text-center text-gray-500">Loading...</div>
+          ) : savedScenarios.length === 0 ? (
+            <div className="text-center text-gray-500">No saved scenarios yet.</div>
+          ) : (
+            <div className="grid gap-6 md:grid-cols-2">
+              {savedScenarios.map((scenario) => (
+                <div key={scenario.id} className="bg-white rounded-xl shadow p-5 border border-[#0BCDAA]">
+                  <div className="flex justify-between items-center mb-2">
+                    <span className="font-semibold text-[#05A6D4]">{scenario.lender}</span>
+                    <span className="text-xs text-gray-400">{new Date(scenario.created_at).toLocaleDateString()}</span>
+                    <button
+                      onClick={() => deleteScenario(scenario.id)}
+                      className="ml-2 px-2 py-1 text-red-600 hover:text-red-800 rounded transition"
+                      title="Delete"
+                    >
+                      Delete
+                    </button>
+                  </div>
+                  <div className="mb-1"><span className="font-medium">Level:</span> {scenario.level}</div>
+                  <div className="mb-1"><span className="font-medium">GPA:</span> {scenario.gpa}</div>
+                  <div className="mb-1"><span className="font-medium">Status:</span> {scenario.status}</div>
+                  <div className="mb-1"><span className="font-medium">Exemption:</span> {scenario.exemption ? 'Yes' : 'No'}</div>
+                  {scenario.duration && <div className="mb-1"><span className="font-medium">Duration:</span> {scenario.duration} years</div>}
+                  <div className="mb-1"><span className="font-medium">Repayment %:</span> <span className="font-bold text-[#0BCDAA]">{scenario.repayment_percent}%</span></div>
+                  <div className="mb-2 text-sm text-gray-600">{scenario.explanation}</div>
+                </div>
+              ))}
+            </div>
+          )}
+        </div>
       </div>
     </div>
   );
