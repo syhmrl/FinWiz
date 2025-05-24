@@ -1,16 +1,72 @@
 import React, { useState, useEffect, createContext, useContext } from 'react';
 import './App.css';
-import { Routes, Route, Navigate } from 'react-router-dom';
+import { Routes, Route, Navigate, useLocation } from 'react-router-dom';
 import Dashboard from './components/Dashboard';
 import Transactions from './components/Transactions';
 import LandingPage from './components/LandingPage';
 import Layout from './components/Layout';
 import Auth from './components/Auth';
 import ExtendedProfile from './components/ExtendedProfile';
+import Profile from './components/Profile';
 import { supabase } from './supabaseClient';
+import StudentLoanCalculator from './components/StudentLoanCalculator';
+import { AnimatePresence } from 'framer-motion';
+import PageTransition from './components/PageTransition';
 
 export const ProfileContext = createContext();
 export const useProfile = () => useContext(ProfileContext);
+
+// Wrapper component to use useLocation with AnimatePresence
+const AnimatedRoutes = ({ session, profileCompleted }) => {
+  const location = useLocation();
+
+  return (
+    <AnimatePresence mode="wait">
+      <Routes location={location} key={location.pathname}>
+        <Route path="/" element={<PageTransition><LandingPage /></PageTransition>} />
+        <Route path="/login" element={<PageTransition><Auth /></PageTransition>} />
+        <Route path="/signup" element={<PageTransition><Auth /></PageTransition>} />
+        
+        {/* Protected Routes */}
+        <Route
+          path="/"
+          element={
+            session ? (
+              profileCompleted ? (
+                <PageTransition><Layout /></PageTransition>
+              ) : (
+                <Navigate to="/complete-profile" replace />
+              )
+            ) : (
+              <Navigate to="/login" replace />
+            )
+          }
+        >
+          <Route path="dashboard" element={<PageTransition><Dashboard /></PageTransition>} />
+          <Route path="transactions" element={<PageTransition><Transactions /></PageTransition>} />
+          <Route path="student-loan-calculator" element={<PageTransition><StudentLoanCalculator /></PageTransition>} />
+          <Route path="profile" element={<PageTransition><Profile /></PageTransition>} />
+        </Route>
+
+        {/* Extended Profile Route */}
+        <Route
+          path="/complete-profile"
+          element={
+            session ? (
+              profileCompleted ? (
+                <Navigate to="/dashboard" replace />
+              ) : (
+                <PageTransition><ExtendedProfile /></PageTransition>
+              )
+            ) : (
+              <Navigate to="/login" replace />
+            )
+          }
+        />
+      </Routes>
+    </AnimatePresence>
+  );
+};
 
 function App() {
   const [session, setSession] = useState(null);
@@ -105,46 +161,11 @@ function App() {
 
   return (
     <ProfileContext.Provider value={{ profileCompleted, setProfileCompleted }}>
-      <Routes>
-        <Route path="/" element={<LandingPage />} />
-        <Route path="/signup" element={<Auth />} />
-        <Route path="/login" element={<Auth />} />
-        
-        {/* Protected Routes */}
-        <Route
-          path="/"
-          element={
-            session ? (
-              profileCompleted ? (
-                <Layout />
-              ) : (
-                <Navigate to="/complete-profile" replace />
-              )
-            ) : (
-              <Navigate to="/login" replace />
-            )
-          }
-        >
-          <Route path="dashboard" element={<Dashboard />} />
-          <Route path="transactions" element={<Transactions />} />
-        </Route>
-
-        {/* Extended Profile Route */}
-        <Route
-          path="/complete-profile"
-          element={
-            session ? (
-              profileCompleted ? (
-                <Navigate to="/dashboard" replace />
-              ) : (
-                <ExtendedProfile setProfileCompleted={setProfileCompleted} />
-              )
-            ) : (
-              <Navigate to="/login" replace />
-            )
-          }
-        />
-      </Routes>
+      <div className="flex h-screen bg-gray-100">
+        <main className="flex-1 overflow-auto">
+          <AnimatedRoutes session={session} profileCompleted={profileCompleted} />
+        </main>
+      </div>
     </ProfileContext.Provider>
   );
 }

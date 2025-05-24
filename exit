@@ -1,0 +1,6 @@
+* [33m97fd8db[m[33m ([m[1;36mHEAD[m[33m -> [m[1;32mmain[m[33m, [m[1;31morigin/main[m[33m)[m Fix dashboard/transactions routing, allow sadaqah type, sync frontend/backend fields
+* [33m063a742[m Implement extended user profile with MM/YYYY graduation picker, institution dropdown, and loan/scholarship provider fields; update landing page CTA, apply new favicon, and ensure backend table (user_profiles) matches app requirements.
+*   [33mcf9fc69[m Resolve merge conflict in README.md
+[32m|[m[33m\[m  
+[32m|[m * [33md390e99[m Initial commit
+* [33m989dfda[m Initial commit: FinWiz - Personal Finance Management Application with core features, dashboard, transaction management, and Supabase integration

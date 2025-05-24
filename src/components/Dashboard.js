@@ -1,10 +1,11 @@
-import React, { useState, useEffect, useCallback } from 'react';
+import React, { useState, useEffect, useCallback, useContext } from 'react';
 import { 
   PieChart, Pie, LineChart, Line, 
   XAxis, YAxis, CartesianGrid, Tooltip, Legend, Cell, ResponsiveContainer 
 } from 'recharts';
 import { Link } from 'react-router-dom';
 import { supabase, getCurrentUser } from '../supabaseClient';
+import { useDarkMode } from './Layout';
 
 const Dashboard = () => {
   console.log('Rendering Dashboard component');
@@ -18,8 +19,11 @@ const Dashboard = () => {
   const [categoryData, setCategoryData] = useState([]);
   const [monthlyData, setMonthlyData] = useState([]);
   const [chartData, setChartData] = useState([]);
+  const [avatarUrl, setAvatarUrl] = useState(null);
   
   const COLORS = ['#8884d8', '#82ca9d', '#ffc658', '#ff8042', '#0088FE', '#00C49F', '#FFBB28', '#FF8042', '#AF19FF'];
+
+  const { darkMode, setDarkMode } = useDarkMode();
 
   // Get current user on component mount
   useEffect(() => {
@@ -38,6 +42,26 @@ const Dashboard = () => {
     };
     
     getUser();
+  }, []);
+
+  // Fetch avatar URL
+  useEffect(() => {
+    const fetchAvatar = async () => {
+      try {
+        const user = await getCurrentUser();
+        if (!user) return;
+        const { data, error } = await supabase
+          .from('profiles')
+          .select('avatar_url')
+          .eq('id', user.id)
+          .single();
+        if (error) throw error;
+        if (data) setAvatarUrl(data.avatar_url);
+      } catch (err) {
+        console.error('Error fetching avatar:', err);
+      }
+    };
+    fetchAvatar();
   }, []);
 
   // Memoize fetchData with useCallback
@@ -163,9 +187,36 @@ const Dashboard = () => {
             </svg>
             <span className="absolute top-0 right-0 h-2 w-2 bg-red-500 rounded-full"></span>
           </button>
-          <div className="h-8 w-8 bg-blue-500 rounded-full overflow-hidden">
-            <img src="https://i.pravatar.cc/300" alt="User" className="h-full w-full object-cover" />
-          </div>
+          <button
+            onClick={() => setDarkMode && setDarkMode((prev) => !prev)}
+            className="p-2 bg-gray-200 rounded-full dark:bg-gray-800 dark:text-gray-200 hover:bg-gray-300 dark:hover:bg-gray-700 transition-colors shadow"
+            title={darkMode ? 'Switch to Light Mode' : 'Switch to Dark Mode'}
+          >
+            {darkMode ? (
+              <svg xmlns="http://www.w3.org/2000/svg" className="h-5 w-5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 3v1m0 16v1m8.66-13.66l-.71.71M4.05 19.07l-.71.71M21 12h-1M4 12H3m16.66 5.66l-.71-.71M4.05 4.93l-.71-.71M16 12a4 4 0 11-8 0 4 4 0 018 0z" />
+              </svg>
+            ) : (
+              <svg xmlns="http://www.w3.org/2000/svg" className="h-5 w-5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M21 12.79A9 9 0 1111.21 3a7 7 0 109.79 9.79z" />
+              </svg>
+            )}
+          </button>
+          <Link to="/profile" className="h-12 w-12 rounded-full flex items-center justify-center hover:bg-gray-100 transition-colors">
+            {avatarUrl ? (
+              <img
+                src={avatarUrl}
+                alt="Profile"
+                className="w-12 h-12 rounded-full object-cover border-2 border-blue-100"
+              />
+            ) : (
+              <div className="w-12 h-12 rounded-full bg-gray-200 flex items-center justify-center">
+                <svg xmlns="http://www.w3.org/2000/svg" className="h-7 w-7 text-gray-400" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M16 7a4 4 0 11-8 0 4 4 0 018 0zM12 14a7 7 0 00-7 7h14a7 7 0 00-7-7z" />
+                </svg>
+              </div>
+            )}
+          </Link>
         </div>
       </div>
 
@@ -261,7 +312,10 @@ const Dashboard = () => {
             <ResponsiveContainer width="100%" height="100%">
               <PieChart>
                 <Pie
-                  data={categoryData.find(d => d.type === 'expense')?.data || []}
+                  data={[
+                    ...((categoryData.find(d => d.type === 'expense')?.data) || []),
+                    ...((categoryData.find(d => d.type === 'sadaqah')?.data) || [])
+                  ]}
                   dataKey="value"
                   nameKey="name"
                   cx="50%"
@@ -270,7 +324,10 @@ const Dashboard = () => {
                   fill="#EF4444"
                   label
                 >
-                  {categoryData.find(d => d.type === 'expense')?.data.map((entry, index) => (
+                  {[
+                    ...((categoryData.find(d => d.type === 'expense')?.data) || []),
+                    ...((categoryData.find(d => d.type === 'sadaqah')?.data) || [])
+                  ].map((entry, index) => (
                     <Cell key={`cell-${index}`} fill={`hsl(${index * 45}, 70%, 50%)`} />
                   ))}
                 </Pie>

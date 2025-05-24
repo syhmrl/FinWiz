@@ -186,16 +186,16 @@ const ExtendedProfile = ({ setProfileCompleted }) => {
   };
 
   return (
-    <div className="min-h-screen bg-gray-50 py-12 px-4 sm:px-6 lg:px-8">
+    <div className="min-h-screen bg-gradient-to-br from-[#0BCDAA] to-[#05A6D4] py-12 px-4 sm:px-6 lg:px-8">
       <div className="max-w-2xl mx-auto">
         <div className="text-center mb-8">
-          <h2 className="text-3xl font-bold text-gray-900">Complete Your Profile</h2>
+          <h2 className="text-3xl font-bold text-[#05A6D4]">Complete Your Profile</h2>
           <p className="mt-2 text-sm text-gray-600">
             Help us personalize your experience by providing some additional information.
           </p>
         </div>
 
-        <form onSubmit={handleSubmit} className="space-y-6 bg-white p-8 rounded-lg shadow">
+        <form onSubmit={handleSubmit} className="space-y-6 bg-white p-8 rounded-2xl shadow-xl">
           {/* Student Status */}
           <div className="flex items-center">
             <input
@@ -204,7 +204,7 @@ const ExtendedProfile = ({ setProfileCompleted }) => {
               name="is_student"
               checked={formData.is_student}
               onChange={handleChange}
-              className="h-4 w-4 text-blue-600 focus:ring-blue-500 border-gray-300 rounded"
+              className="h-4 w-4 text-[#05A6D4] focus:ring-[#0BCDAA] border-gray-300 rounded"
             />
             <label htmlFor="is_student" className="ml-2 block text-sm text-gray-900">
               I am a student

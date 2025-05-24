@@ -1,5 +1,8 @@
 import React, { useState, useEffect, useCallback } from 'react';
 import { supabase, getCurrentUser } from '../supabaseClient';
+import Modal from 'react-modal';
+
+Modal.setAppElement('#root');
 
 const Transactions = () => {
   console.log('Rendering Transactions component');
@@ -21,6 +24,7 @@ const Transactions = () => {
   const [customCategories, setCustomCategories] = useState([]);
   const [searchQuery, setSearchQuery] = useState('');
   const [filterCategory, setFilterCategory] = useState('');
+  const [isModalOpen, setIsModalOpen] = useState(false);
 
   // Predefined categories
   const categories = [
@@ -274,17 +278,13 @@ const Transactions = () => {
     setType(entry.type);
     setNotes(entry.notes || '');
     setEditingId(entry.id);
-    
-    // Check if the category is one of the predefined ones
     if (!categories.includes(entry.category)) {
       setShowNewCategory(true);
       setNewCategory(entry.category);
     } else {
       setShowNewCategory(false);
     }
-    
-    // Scroll to form
-    window.scrollTo({ top: 0, behavior: 'smooth' });
+    setIsModalOpen(true);
   };
 
   const cancelEdit = () => {
@@ -296,6 +296,7 @@ const Transactions = () => {
     setNotes('');
     setShowNewCategory(false);
     setEditingId(null);
+    setIsModalOpen(false);
   };
 
   // Calculate totals
@@ -332,10 +333,22 @@ const Transactions = () => {
       <div className="max-w-6xl mx-auto">
         <div className="flex justify-between items-center mb-8">
           <h1 className="text-2xl font-bold text-gray-800">Transactions</h1>
+          <button
+            className="px-4 py-2 bg-blue-600 text-white rounded hover:bg-blue-700"
+            onClick={() => setIsModalOpen(true)}
+          >
+            Add Transaction
+          </button>
         </div>
         
-        {/* Form Card */}
-        <div className="bg-white p-6 rounded-lg shadow mb-6">
+        {/* Modal for Add/Edit Transaction */}
+        <Modal
+          isOpen={isModalOpen}
+          onRequestClose={cancelEdit}
+          contentLabel={editingId ? 'Edit Transaction' : 'Add New Transaction'}
+          className="max-w-2xl mx-auto mt-20 bg-white p-6 rounded-lg shadow-lg outline-none"
+          overlayClassName="fixed inset-0 bg-black bg-opacity-40 flex items-center justify-center z-50"
+        >
           <h2 className="text-lg font-semibold mb-4 text-gray-700">
             {editingId ? 'Edit Transaction' : 'Add New Transaction'}
           </h2>
@@ -507,18 +520,16 @@ const Transactions = () => {
                     : 'Add Transaction'
                 }
               </button>
-              {editingId && (
-                <button
-                  type="button"
-                  onClick={cancelEdit}
-                  className="px-4 py-2 bg-gray-300 text-gray-700 rounded hover:bg-gray-400"
-                >
-                  Cancel
-                </button>
-              )}
+              <button
+                type="button"
+                onClick={cancelEdit}
+                className="px-4 py-2 bg-gray-300 text-gray-700 rounded hover:bg-gray-400"
+              >
+                Cancel
+              </button>
             </div>
           </form>
-        </div>
+        </Modal>
         
         {/* Summary Card */}
         <div className="grid grid-cols-1 md:grid-cols-4 gap-4 mb-6">
