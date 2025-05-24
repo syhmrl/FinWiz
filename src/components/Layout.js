@@ -12,6 +12,7 @@ const Layout = () => {
   const navigate = useNavigate();
   const [avatarUrl, setAvatarUrl] = useState(null);
   const [loading, setLoading] = useState(true);
+  const [isSidebarOpen, setIsSidebarOpen] = useState(false);
   const [darkMode, setDarkMode] = useState(() => {
     // Check localStorage for dark mode preference
     return localStorage.getItem('finwiz-dark') === 'true';
@@ -65,8 +66,18 @@ const Layout = () => {
   return (
     <DarkModeContext.Provider value={{ darkMode, setDarkMode }}>
       <div className="flex h-screen bg-gray-100 dark:bg-gray-900 transition-colors duration-300">
+        {/* Mobile Menu Button */}
+        <button
+          onClick={() => setIsSidebarOpen(!isSidebarOpen)}
+          className="lg:hidden fixed top-4 left-4 z-50 p-2 rounded-md bg-[#0BCDAA] text-white"
+        >
+          <svg xmlns="http://www.w3.org/2000/svg" className="h-6 w-6" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M4 6h16M4 12h16M4 18h16" />
+          </svg>
+        </button>
+
         {/* Sidebar */}
-        <div className="w-64 bg-gradient-to-b from-[#0BCDAA] to-[#05A6D4] text-white shadow-2xl flex flex-col">
+        <div className={`fixed lg:static w-64 h-full bg-gradient-to-b from-[#0BCDAA] to-[#05A6D4] text-white shadow-2xl flex flex-col transform transition-transform duration-300 ease-in-out ${isSidebarOpen ? 'translate-x-0' : '-translate-x-full lg:translate-x-0'}`}>
           {/* Logo/Branding */}
           <div className="p-6 flex items-center gap-3 border-b border-[#05A6D4]">
             <svg xmlns="http://www.w3.org/2000/svg" className="h-8 w-8 text-white" fill="none" viewBox="0 0 24 24" stroke="currentColor">
@@ -129,9 +140,9 @@ const Layout = () => {
           </nav>
         </div>
         {/* Main Content Area */}
-        <div className="flex-1 flex flex-col">
+        <div className="flex-1 flex flex-col w-full">
           {/* Main Content */}
-          <div className="flex-1 overflow-y-auto">
+          <div className="flex-1 overflow-y-auto p-4 lg:p-6">
             <Outlet />
           </div>
         </div>
