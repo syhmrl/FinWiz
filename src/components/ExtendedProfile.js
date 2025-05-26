@@ -1,9 +1,11 @@
 import React, { useState } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { supabase } from '../supabaseClient';
+import { useProfile } from '../App';
 
-const ExtendedProfile = ({ setProfileCompleted }) => {
+const ExtendedProfile = () => {
   const navigate = useNavigate();
+  const { setProfileCompleted } = useProfile();
   const [loading, setLoading] = useState(false);
   const [formData, setFormData] = useState({
     is_student: false,
@@ -94,6 +96,7 @@ const ExtendedProfile = ({ setProfileCompleted }) => {
 
   const handleSubmit = async (e) => {
     e.preventDefault();
+
     setLoading(true);
 
     try {
@@ -101,14 +104,8 @@ const ExtendedProfile = ({ setProfileCompleted }) => {
       
       if (!user) throw new Error('No user found');
 
-      console.log('Current user:', user);
-
       // Convert loan amount to decimal
       const loanAmount = formData.loan_amount ? parseFloat(formData.loan_amount) : null;
-      
-      // Convert graduation month to string (YYYY-MM)
-      const graduationMonth = formData.expected_graduation_month ? 
-        formData.expected_graduation_month : null;
 
       // Prepare the profile data with only the fields that exist in the schema
       const profileData = {
@@ -117,85 +114,62 @@ const ExtendedProfile = ({ setProfileCompleted }) => {
         monthly_income_source: formData.monthly_income_source || null,
         monthly_expenses_range: formData.monthly_expenses_range || null,
         loan_amount: loanAmount,
-        expected_graduation_month: formData.is_student ? graduationMonth : null,
+        expected_graduation_month: formData.is_student ? formData.expected_graduation_month : null,
         loan_lender: formData.loan_amount > 0 ? formData.loan_lender : null,
         currency_preference: formData.currency_preference || null,
         profile_completed: true,
         updated_at: new Date().toISOString()
       };
 
-      console.log('Prepared profile data:', profileData);
-
-      // First, try to get the existing profile
-      const { data: existingProfile, error: fetchError } = await supabase
+       // Upsert
+      const { data: existingProfile, error: fetchErr } = await supabase
         .from('profiles')
-        .select('*')
+        .select('id')
         .eq('id', user.id)
         .single();
 
-      console.log('Existing profile check:', { existingProfile, fetchError });
-
-      if (fetchError && fetchError.code !== 'PGRST116') {
-        console.error('Error fetching existing profile:', fetchError);
-        throw fetchError;
-      }
+      if (fetchErr && fetchErr.code !== 'PGRST116') throw fetchErr;
 
       let result;
-      // If no profile exists, create one
+      
       if (!existingProfile) {
-        console.log('Creating new profile');
         result = await supabase
           .from('profiles')
-          .insert([
-            {
-              id: user.id,
-              full_name: user.user_metadata?.full_name || '',
-              email: user.email,
-              created_at: new Date().toISOString(),
-              ...profileData
-            }
-          ]);
-
-        if (result.error) {
-          console.error('Error creating profile:', result.error);
-          throw result.error;
-        }
+          .insert([{ 
+            id: user.id, 
+            full_name: user.user_metadata?.full_name || '', 
+            email: user.email, 
+            created_at: new Date().toISOString(), ...profileData 
+          }]);
       } else {
-        // Update existing profile
-        console.log('Updating existing profile');
         result = await supabase
           .from('profiles')
           .update(profileData)
           .eq('id', user.id);
-
-        if (result.error) {
-          console.error('Error updating profile:', result.error);
-          throw result.error;
-        }
       }
+      if (result.error) throw result.error;
 
-      console.log('Profile operation successful:', result);
-      if (setProfileCompleted) setProfileCompleted(true);
+      setProfileCompleted(true);
       navigate('/dashboard');
-    } catch (error) {
-      console.error('Error saving profile:', error);
-      alert(`Error saving profile: ${error.message || 'Please try again.'}`);
+    } catch (err) {
+      console.error('Error saving extended profile', err);
+      alert(`Error saving profile: ${err.message}`);
     } finally {
       setLoading(false);
     }
   };
 
   return (
-    <div className="min-h-screen bg-gradient-to-br from-[#0BCDAA] to-[#05A6D4] py-12 px-4 sm:px-6 lg:px-8">
+    <div className="min-h-screen bg-gradient-to-br from-[#0BCDAA]/50 to-[#05A6D4]/50 py-12 px-4 sm:px-6 lg:px-8">
       <div className="max-w-2xl mx-auto">
-        <div className="text-center mb-8">
-          <h2 className="text-3xl font-bold text-[#05A6D4]">Complete Your Profile</h2>
-          <p className="mt-2 text-sm text-gray-600">
-            Help us personalize your experience by providing some additional information.
+        <div className="text-center mb-6">
+          <h2 className="text-2xl font-semibold text-gray-800">Optional Profile Setup</h2>
+          <p className="text-sm text-gray-600">
+            You can skip this step and fill it in later in your profile settings.
           </p>
         </div>
 
-        <form onSubmit={handleSubmit} className="space-y-6 bg-white p-8 rounded-2xl shadow-xl">
+        <form onSubmit={handleSubmit} className="space-y-6 bg-white p-6 rounded-lg border border-gray-200">
           {/* Student Status */}
           <div className="flex items-center">
             <input
@@ -204,7 +178,7 @@ const ExtendedProfile = ({ setProfileCompleted }) => {
               name="is_student"
               checked={formData.is_student}
               onChange={handleChange}
-              className="h-4 w-4 text-[#05A6D4] focus:ring-[#0BCDAA] border-gray-300 rounded"
+              className="ml-2 text-gray-700"
             />
             <label htmlFor="is_student" className="ml-2 block text-sm text-gray-900">
               I am a student
