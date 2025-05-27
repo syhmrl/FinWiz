@@ -12,7 +12,6 @@ import { supabase } from './supabaseClient';
 import StudentLoanCalculator from './components/StudentLoanCalculator';
 import { AnimatePresence } from 'framer-motion';
 import PageTransition from './components/PageTransition';
-import AnimatedCursor from "react-animated-cursor";
 
 export const ProfileContext = createContext();
 export const useProfile = () => useContext(ProfileContext);
@@ -162,15 +161,6 @@ function App() {
 
   return (
     <ProfileContext.Provider value={{ profileCompleted, setProfileCompleted }}>
-      <AnimatedCursor
-        innerSize={8}
-        outerSize={35}
-        color='11, 205, 170'
-        outerAlpha={0.2}
-        innerScale={1}
-        outerScale={2}
-        clickables={['a', 'button', '.your-class']}
-      />
       <div className="flex h-screen bg-gray-100">
         <main className="flex-1 overflow-auto">
           <AnimatedRoutes session={session} profileCompleted={profileCompleted} />
